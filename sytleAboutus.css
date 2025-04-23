@@ -1,0 +1,87 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+h5 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: #050404;
+    text-align: center;
+    margin-top: 20px;
+    font-weight: 500;
+    font-style: italic;
+  }
+  p {
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #050404;
+    text-align: center;
+    margin-top: 10px;
+    font-weight: 500;
+    font-style: italic;
+  }
+ 
+
+
+  #carouselExampleCaptions,
+  .carousel-inner,
+  .carousel-item,
+  .carousel-item img {
+    height: 100vh; /* Ekranın tamamını kapla */
+  }
+  
+  .carousel-item img {
+    object-fit: cover;
+  }
+#carouselExampleCaptions {
+    position: relative; /* İçeriklerin konumlandırılabilmesi için */
+    overflow: hidden; /* Taşan içerikleri gizler */
+    background-color: #000; /* Arka plan rengi */
+}
+#carouselExampleCaptions img {
+  width: 100vw; /* Tüm yatay genişliği kaplar */
+  height: 100vh; /* Tüm dikey yüksekliği kaplar */
+  object-fit: cover; /* Resmin orantılı şekilde kırpılmasını sağlar */
+  border-radius: 0; /* Köşe yuvarlamayı kaldırır */
+  margin: 0; /* Kenar boşluklarını kaldırır */
+  box-shadow: none; /* Gölgeyi kaldırır */
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+#carouselExampleCaptions img:hover {
+  transform: scale(1.05);
+}
+
+#carouselExampleCaptions img:active {
+  transform: scale(0.95);
+}
+
+#carouselExampleCaptions img:focus {
+  outline: none;
+}
+
+#carouselExampleCaptions img:focus-visible {
+  outline: 2px solid #007BFF;
+}
+
+#carouselExampleCaptions img:focus-within {
+  outline: 2px solid #007BFF;
+}
+#how-to-use img {
+    width: 100%;
+  
+}
+footer p {
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #d8d2d2;
+    text-align: center;
+    margin-top: 10px;
+    font-weight: 500;
+    font-style: italic;
+  }

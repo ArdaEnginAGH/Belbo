@@ -1,0 +1,6 @@
+{
+  "server": { "baseDir": "./" },
+  "files": false,
+  "watch": false,
+  "notify": false
+}
