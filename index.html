@@ -24,20 +24,23 @@
 <body>
     
     <nav class="navbar navbar-dark bg-dark navbar-fullwidth" id="nav-main">
-        <a class="navbar-brand" href="home.html">Belbo</a>
+        <a class="navbar-brand" href="index.html">Belbo</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav">
             <li class="nav-item active">
-              <a class="nav-link" href="home.html">Home <span class="sr-only">Home</span></a>
+              <a class="nav-link" href="index.html">Home <span class="sr-only">Home</span></a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="profile.html">Profile</a>
             </li>
             <li class="nav-item">
               <a class="nav-link disabled">Disabled</a>
+            </li>
+            <li class="nav-item">
+              <a id="logoutBtn" class="nav-link" href="#">Logout</a>
             </li>
           </ul>
         </div>
@@ -63,10 +66,16 @@
               <div class="form-group">
                 <label>Food Item</label>
                 <input type="text" id="entry-food" class="form-control" required />
+                <input type="text" id="food-search" class="form-control mt-2" placeholder="Search food items..." />
+                <div id="search-results" class="list-group mt-1"></div>
               </div>
               <div class="form-group">
                 <label>Calories</label>
                 <input type="number" id="entry-calories" class="form-control" required />
+              </div>
+              <div class="form-group">
+                <label>Time</label>
+                <input type="time" id="entry-time" class="form-control" required />
               </div>
               <button type="submit" class="btn btn-primary">Add Entry</button>
             </form>
@@ -86,26 +95,98 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'dayGridMonth',
-          dateClick: function(info) {
-            document.getElementById('entry-date').value = info.dateStr;
-            $('#entryModal').modal('show');
-          }
+    <script type="module">
+      import { auth, db } from './Shared.js';
+      import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+      import { collection, query, where, getDocs, addDoc, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
+
+      // define food items (sample list; extend or fetch dynamically as needed)
+      const foodItems = [
+        { name: 'apple', icon: 'Favorites/icons8-apple-fruit-100.png' },
+        { name: 'banana', icon: 'Favorites/icons8-banana-100.png' },
+        { name: 'avocado', icon: 'Favorites/icons8-avocado-100.png' },
+        { name: 'bread', icon: 'Favorites/icons8-bread-100.png' },
+        { name: 'carrot', icon: 'Favorites/icons8-carrot-100.png' }
+      ];
+
+      document.addEventListener('DOMContentLoaded', () => {
+        onAuthStateChanged(auth, async user => {
+          if (!user) return;
+          const calendarEl = document.getElementById('calendar');
+          const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            eventContent: arg => {
+              const icon = arg.event.extendedProps.icon;
+              return { html: icon ? `<img src="${icon}" style="width:16px;height:16px;vertical-align:middle;margin-right:4px">${arg.event.title}` : arg.event.title };
+            },
+            dateClick: info => {
+              document.getElementById('entry-date').value = info.dateStr;
+              $('#entryModal').modal('show');
+            }
+          });
+          // load existing events
+          const eventsQuery = query(collection(db, 'calories'), where('uid', '==', user.uid));
+          const snapshot = await getDocs(eventsQuery);
+          snapshot.forEach(doc => {
+            const d = doc.data();
+            const start = d.dateTime ? (d.dateTime.toDate ? d.dateTime.toDate() : d.dateTime) : (d.createdAt && (d.createdAt.toDate ? d.createdAt.toDate() : d.createdAt));
+            if (start) calendar.addEvent({ title: `${d.food} (${d.calories} kcal)`, start, extendedProps: { icon: d.icon || '' } });
+          });
+          calendar.render();
+
+          // search logic
+          const searchInput = document.getElementById('food-search');
+          const results = document.getElementById('search-results');
+          let selectedIcon = '';
+          searchInput.addEventListener('input', () => {
+            const term = searchInput.value.toLowerCase().trim(); results.innerHTML = '';
+            if (!term) return;
+            foodItems.filter(i => i.name.includes(term)).forEach(item => {
+              const btn = document.createElement('button');
+              btn.type = 'button'; btn.className = 'list-group-item list-group-item-action';
+              btn.innerHTML = `<img src="${item.icon}" width="24" style="margin-right:8px">${item.name}`;
+              btn.onclick = () => { document.getElementById('entry-food').value = item.name; selectedIcon = item.icon; results.innerHTML = ''; searchInput.value = item.name; };
+              results.appendChild(btn);
+            });
+          });
+
+          // form submit
+          document.getElementById('entry-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const date = document.getElementById('entry-date').value;
+            const time = document.getElementById('entry-time').value;
+            const dt = new Date(`${date}T${time}`);
+            const food = document.getElementById('entry-food').value.trim();
+            const cal = parseInt(document.getElementById('entry-calories').value, 10);
+            if (!food || isNaN(cal)) return;
+            await addDoc(collection(db, 'calories'), { uid: user.uid, food, calories: cal, createdAt: serverTimestamp(), dateTime: Timestamp.fromDate(dt), icon: selectedIcon });
+            calendar.addEvent({ title: `${food} (${cal} kcal)`, start: dt, extendedProps: { icon: selectedIcon } });
+            $('#entryModal').modal('hide'); e.target.reset();
+          });
         });
-        calendar.render();
       });
     </script>
     <script>
-      // auto-toggle nav menu on hover
-      $(function() {
-        $('#nav-main').hover(
-          function() { $('#navbarNav').collapse('show'); },
-          function() { $('#navbarNav').collapse('hide'); }
-        );
+      // auto-toggle nav menu on hover everywhere
+      $(function() { $('#nav-main').hover(
+          () => $('#navbarNav').collapse('show'),
+          () => $('#navbarNav').collapse('hide')
+      ); });
+
+      // attach logout handler
+      document.addEventListener('DOMContentLoaded', () => {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn && window.auth) {
+          logoutBtn.addEventListener('click', async e => {
+            e.preventDefault();
+            try {
+              await auth.signOut();
+              window.location.href = 'login.html';
+            } catch (err) {
+              console.error('Logout failed:', err);
+            }
+          });
+        }
       });
     </script>
 </body>

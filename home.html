@@ -63,6 +63,8 @@
               <div class="form-group">
                 <label>Food Item</label>
                 <input type="text" id="entry-food" class="form-control" required />
+                <input type="text" id="food-search" class="form-control" placeholder="Search food items..." />
+                <div id="search-results" class="list-group"></div>
               </div>
               <div class="form-group">
                 <label>Calories</label>
@@ -100,11 +102,23 @@
           const calendarEl = document.getElementById('calendar');
           const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
+            eventContent: function(arg) {
+              const icon = arg.event.extendedProps.icon;
+              const title = arg.event.title;
+              return { html: `<img src="${icon}" style="width:16px;height:16px;vertical-align:middle;margin-right:4px"/>${title}` };
+            },
             dateClick: info => {
               document.getElementById('entry-date').value = info.dateStr;
               $('#entryModal').modal('show');
             }
           });
+          // sample food items; extend this array or import from separate file
+          const foodItems = [
+            { name: 'apple', icon: 'Favorites/icons8-apple-fruit-100.png' },
+            { name: 'banana', icon: 'Favorites/icons8-banana-100.png' },
+            { name: 'avocado', icon: 'Favorites/icons8-avocado-100.png' },
+            { name: 'bread', icon: 'Favorites/icons8-bread-100.png' }
+          ];
           // load existing events
           const eventsQuery = query(collection(db, 'calories'), where('uid', '==', user.uid));
           const snapshot = await getDocs(eventsQuery);
@@ -116,10 +130,32 @@
               ? (data.dateTime.toDate ? data.dateTime.toDate() : data.dateTime)
               : (data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : null);
             if (start) {
-              calendar.addEvent({ title: `${data.food} (${data.calories} kcal)`, start });
+              calendar.addEvent({ title: `${data.food} (${data.calories} kcal)`, start, extendedProps: { icon: data.icon } });
             }
           });
           calendar.render();
+          // add search bar logic inside the modal
+          const searchInput = document.getElementById('food-search');
+          const resultsContainer = document.getElementById('search-results');
+          let selectedIcon = '';
+          searchInput.addEventListener('input', () => {
+            const term = searchInput.value.trim().toLowerCase();
+            resultsContainer.innerHTML = '';
+            if (!term) return;
+            foodItems.filter(item => item.name.includes(term)).forEach(item => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'list-group-item list-group-item-action';
+              btn.innerHTML = `<img src="${item.icon}" width="24" style="margin-right:8px"/>${item.name}`;
+              btn.addEventListener('click', () => {
+                document.getElementById('entry-food').value = item.name;
+                selectedIcon = item.icon;
+                resultsContainer.innerHTML = '';
+                searchInput.value = item.name;
+              });
+              resultsContainer.appendChild(btn);
+            });
+          });
           // handle new entry submits
           document.getElementById('entry-form').addEventListener('submit', async e => {
             e.preventDefault();
@@ -130,7 +166,7 @@
             const calories = parseInt(document.getElementById('entry-calories').value, 10);
             if (!food || isNaN(calories)) return;
             const docRef = await addDoc(collection(db, 'calories'), { uid: user.uid, food, calories, createdAt: serverTimestamp(), dateTime: Timestamp.fromDate(dateTime) });
-            calendar.addEvent({ title: `${food} (${calories} kcal)`, start: dateTime });
+            calendar.addEvent({ title: `${food} (${calories} kcal)`, start: dateTime, extendedProps: { icon: selectedIcon } });
             $('#entryModal').modal('hide');
             e.target.reset();
           });

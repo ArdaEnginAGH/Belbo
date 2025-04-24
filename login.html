@@ -9,42 +9,55 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"/>
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css"/>
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  
+  <!-- Firebase Shared (modular) -->
   <script type="module" src="Shared.js"></script>
-
+  <!-- Login logic as ES module -->
+  <script type="module">
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+    import { auth } from './Shared.js';
+    import { GoogleAuthProvider, FacebookAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+    // Auto-redirect if already signed in
+    onAuthStateChanged(auth, user => { if (user) window.location.href = 'index.html'; });
+    // Google login
+    window.signInWithGoogle = async function() {
+      const provider = new GoogleAuthProvider();
+      try {
+        const result = await signInWithPopup(auth, provider);
+        console.log('Google login succeeded', result.user);
+        window.location.href = 'index.html';
+      } catch(err) {
+        console.error('Google login failed:', err);
+        alert('Google login failed: ' + err.message);
+      }
+    }
+    // Facebook login
+    window.signInWithFacebook = async function() {
+      const provider = new FacebookAuthProvider();
+      console.log('Attempting Facebook login');
+      try {
+        const result = await signInWithPopup(auth, provider);
+        console.log('Facebook login succeeded', result.user);
+        window.location.href = 'index.html';
+      } catch(err) {
+        console.error('Facebook login failed:', err.code, err.message);
+        alert('Facebook login failed: ' + err.message);
+      }
+    }
+  </script>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-dark bg-dark fixed-top">
-      <a class="navbar-brand" href="#">Belbo</a>
+    <!-- Unified Navigation -->
+    <nav id="nav-main" class="navbar navbar-dark bg-dark fixed-top">
+      <a class="navbar-brand" href="index.html">Belbo</a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-          <span class="navbar-toggler-icon"></span>
+        <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
-              <li class="nav-item active"><a class="nav-link" href="Home.html">Home</a></li>
-              <li class="nav-item"><a class="nav-link" href="Profile.html">Profile</a></li>
-              <li class="nav-item"><a class="nav-link disabled">Disabled</a></li>
-          </ul>
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item active"><a class="nav-link" href="index.html">Home</a></li>
+        </ul>
       </div>
-  </nav>
-  <nav class="navbar navbar-dark bg-dark navbar-fullwidth" id="nav-main">
-  <a class="navbar-brand" href="login.html">Belbo</a>
-  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarNav">
-    <ul class="navbar-nav">
-    <li class="nav-item active">
-      <a class="nav-link" href="login.html">Home</a>
-    </li>
-    <!-- About Us and other links removed -->
-    </ul>
-  </div>
-  </nav>
+    </nav>
 
   <section id="cover">
   <div class="container mt-5">
@@ -66,59 +79,14 @@
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- Firebase SDK -->
- 
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
-
   <script>
-  // Firebase Config (senin bilgilerinle)
-  const firebaseConfig = {
-    apiKey: "AIzaSyCq6n-YI2zyisjbH_z3hSGK9AcqpYepIo0",
-    authDomain: "belboo-s-domain.firebaseapp.com",
-    projectId: "belboo-s-domain",
-    storageBucket: "belboo-s-domain.firebasestorage.app",
-    messagingSenderId: "376250568269",
-    appId: "1:376250568269:web:94b394f67f19b0ce3d1604",
-    measurementId: "G-ZVTL36WRYP"
-  };
-
-  // Firebase başlat
-  firebase.initializeApp(firebaseConfig);
-  firebase.analytics();
-  const auth = firebase.auth();
-
-  // Google ile giriş
-  function signInWithGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider)
-    .then((result) => {
-      alert("Hoş geldin " + result.user.displayName);
-      console.log(result.user);
-      window.location.href = "Home.html"; // Başarılı girişte yönlendirme
-    })
-    .catch((error) => {
-      console.error(error);
-      alert("Google login failed! Error: " + error.message);
-      console.error("Error code:", error.code, "Error message:", error.message);
+    // auto-toggle nav menu on hover
+    $(function() {
+      $('#nav-main').hover(
+        () => $('#navbarNav').collapse('show'),
+        () => $('#navbarNav').collapse('hide')
+      );
     });
-  }
-
-  // Facebook ile giriş
-  function signInWithFacebook() {
-    const provider = new firebase.auth.FacebookAuthProvider();
-    auth.signInWithPopup(provider)
-    .then((result) => {
-      alert("Hoş geldin " + result.user.displayName);
-      console.log(result.user);
-      window.location.href = "Home.html"; // Başarılı girişte yönlendirme
-    })
-    .catch((error) => {
-      console.error(error);
-      alert("Facebook login failed!");
-      window.location.href = "Login.html"; // Başarısız girişte yönlendirme
-    });
-  }
   </script>
   <footer style="background-color: #000; color: #fff; padding: 20px 0; text-align: center;">
     <div class="container">

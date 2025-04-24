@@ -21,6 +21,10 @@ initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
+// Expose auth and db globally for non-module scripts
+window.auth = auth;
+window.db = db;
+
 // Kullanıcı giriş kontrolü
 function checkUserLogin() {
   onAuthStateChanged(auth, (user) => {
