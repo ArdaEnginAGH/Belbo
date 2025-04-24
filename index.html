@@ -53,14 +53,14 @@
               <input type="text" id="entry-date" class="form-control" readonly />
             </div>
             <div class="form-group">
-              <label>Food Item</label>
-              <input type="text" id="entry-food" class="form-control" required />
-              <input type="text" id="food-search" class="form-control mt-2" placeholder="Search food items..." />
+              <label>Meal Name</label>
+              <input type="text" id="entry-food" class="form-control" placeholder="Search or enter meal name..." required />
               <div id="search-results" class="list-group mt-1"></div>
             </div>
             <div class="form-group">
-              <label>Calories</label>
-              <input type="number" id="entry-calories" class="form-control" required />
+              <label>Ingredients</label>
+              <button type="button" id="add-ingredient-btn" class="btn btn-sm btn-outline-primary ml-2">+ Add Ingredient</button>
+              <div id="ingredients-container" class="mt-2"></div>
             </div>
             <div class="form-group">
               <label>Time</label>
@@ -155,7 +155,7 @@
           const d = docSnap.data();
           const start = d.dateTime ? (d.dateTime.toDate ? d.dateTime.toDate() : d.dateTime) : (d.createdAt ? d.createdAt.toDate() : null);
           if (start) calendar.addEvent({
-            title: `${d.food} (${d.calories} kcal)`,
+            title: `${d.mealName} (${d.calories} kcal)`,
             start,
             extendedProps: { icon: d.icon||'', docId: docSnap.id }
           });
@@ -170,7 +170,7 @@
         };
 
         // search logic
-        const searchInput = document.getElementById('food-search');
+        const searchInput = document.getElementById('entry-food');
         const results = document.getElementById('search-results');
         let selectedIcon = '';
         searchInput.addEventListener('input', () => {
@@ -179,7 +179,7 @@
           foodItems.filter(i=>i.name.includes(term)).forEach(item=>{
             const btn = document.createElement('button'); btn.type='button'; btn.className='list-group-item list-group-item-action';
             btn.innerHTML = `<img src="/${item.icon}" width="24" style="margin-right:8px">${item.name}`;
-            btn.onclick = ()=>{document.getElementById('entry-food').value=item.name; selectedIcon=item.icon; searchInput.value=item.name; results.innerHTML='';};
+            btn.onclick = ()=>{ document.getElementById('entry-food').value=item.name; selectedIcon=item.icon; results.innerHTML=''; };
             results.appendChild(btn);
           });
         });
@@ -190,12 +190,63 @@
           const date = document.getElementById('entry-date').value;
           const time = document.getElementById('entry-time').value;
           const dt = new Date(`${date}T${time}`);
-          const food = document.getElementById('entry-food').value.trim();
-          const cal = parseInt(document.getElementById('entry-calories').value,10);
-          if (!food||isNaN(cal)) return;
-          await addDoc(collection(db,'calories'),{uid:user.uid,food,calories:cal,createdAt:serverTimestamp(),dateTime:Timestamp.fromDate(dt),icon:selectedIcon});
-          calendar.addEvent({title:`${food} (${cal} kcal)`,start:dt,extendedProps:{icon:selectedIcon}});
+          const mealName = document.getElementById('entry-food').value.trim();
+          // gather ingredients details
+          const rows = document.querySelectorAll('.ingredient-row');
+          const ingredients = [];
+          let totalCalories = 0;
+          rows.forEach(row => {
+            const name = row.querySelector('.ingredient-name').value.trim();
+            const calPer = parseFloat(row.querySelector('.ingredient-calories').value);
+            const qty = parseFloat(row.querySelector('.ingredient-qty').value);
+            if (name && !isNaN(calPer) && !isNaN(qty)) {
+              ingredients.push({ name, caloriesPerUnit: calPer, quantity: qty });
+              totalCalories += calPer * qty;
+            }
+          });
+          if (!mealName || ingredients.length === 0) return;
+          await addDoc(collection(db,'calories'),{uid:user.uid,mealName,ingredients,calories: totalCalories,createdAt:serverTimestamp(),dateTime:Timestamp.fromDate(dt),icon:selectedIcon});
+          calendar.addEvent({title:`${mealName} (${Math.round(totalCalories)} kcal)`,start:dt,extendedProps:{icon:selectedIcon}});
           $('#entryModal').modal('hide'); e.target.reset();
+        });
+
+        // add ingredient button handler
+        document.getElementById('add-ingredient-btn').addEventListener('click', () => {
+          const container = document.getElementById('ingredients-container');
+          const row = document.createElement('div');
+          row.className = 'ingredient-row mb-2';
+          row.innerHTML = `
+            <input type="text" class="form-control ingredient-name" placeholder="Search ingredient..." required />
+            <ul class="list-group suggestions"></ul>
+            <input type="number" class="form-control ingredient-calories" placeholder="Calories per unit" required />
+            <div class="input-group mt-1">
+              <input type="range" min="1" max="10" value="1" class="ingredient-qty form-control-range" />
+              <span class="qty-display ml-2">1</span>
+              <button class="btn btn-outline-danger remove-ingredient-btn ml-2" type="button">&times;</button>
+            </div>
+          `;
+          container.appendChild(row);
+          // remove row
+          row.querySelector('.remove-ingredient-btn').addEventListener('click', () => row.remove());
+          // qty slider display
+          const qtyInput = row.querySelector('.ingredient-qty');
+          const display = row.querySelector('.qty-display');
+          qtyInput.addEventListener('input', () => display.textContent = qtyInput.value);
+          // ingredient search in this row
+          const nameInput = row.querySelector('.ingredient-name');
+          const suggestEl = row.querySelector('.suggestions');
+          nameInput.addEventListener('input', () => {
+            const term = nameInput.value.toLowerCase().trim();
+            suggestEl.innerHTML = '';
+            if (!term) return;
+            foodItems.filter(item => item.name.includes(term)).slice(0,5).forEach(item => {
+              const li = document.createElement('li');
+              li.className = 'list-group-item';
+              li.textContent = item.name;
+              li.addEventListener('click', () => { nameInput.value = item.name; suggestEl.innerHTML = ''; });
+              suggestEl.appendChild(li);
+            });
+          });
         });
       });
 
