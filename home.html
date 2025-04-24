@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet" />
     <style>
         body {
           background-image: url('background.jpg');
@@ -11,6 +12,7 @@
           background-position: center;
           background-repeat: no-repeat;
         }
+        .fc-daygrid-day:hover { box-shadow: 0 0 8px rgba(0,123,255,0.7); cursor: pointer; }
     </style>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
@@ -22,20 +24,17 @@
 <body>
     
     <nav class="navbar navbar-dark bg-dark navbar-fullwidth" id="nav-main">
-        <a class="navbar-brand" href="#">Belboo</a>
+        <a class="navbar-brand" href="home.html">Belbo</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav">
             <li class="nav-item active">
-              <a class="nav-link" href="Home.html">Home <span class="sr-only">Home</span></a>
+              <a class="nav-link" href="home.html">Home <span class="sr-only">Home</span></a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="Aboutus.html">About Us</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="Profile.html">Profile</a>
+              <a class="nav-link" href="profile.html">Profile</a>
             </li>
             <li class="nav-item">
               <a class="nav-link disabled">Disabled</a>
@@ -43,10 +42,46 @@
           </ul>
         </div>
     </nav>
+    <div id="calendar"></div>
+
+    <!-- Entry Modal -->
+    <div class="modal fade" id="entryModal" tabindex="-1" aria-labelledby="entryModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="entryModalLabel">Add Meal Entry</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form id="entry-form">
+              <div class="form-group">
+                <label>Date</label>
+                <input type="text" id="entry-date" class="form-control" readonly />
+              </div>
+              <div class="form-group">
+                <label>Food Item</label>
+                <input type="text" id="entry-food" class="form-control" required />
+              </div>
+              <div class="form-group">
+                <label>Calories</label>
+                <input type="number" id="entry-calories" class="form-control" required />
+              </div>
+              <div class="form-group">
+                <label>Time</label>
+                <input type="time" id="entry-time" class="form-control" required />
+              </div>
+              <button type="submit" class="btn btn-primary">Add Entry</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
     <footer style="background-color: #000; color: #fff; padding: 20px 0; text-align: center;">
       <div class="container">
-        <p>&copy; 2023 Caloria. All rights reserved.</p>
-        <p>Designed with by Caloria Team</p>
+        <p>&copy; 2025 Belbo. All rights reserved.</p>
+        <p>Designed with by Belbo Team</p>
       </div>
     </footer>
     <!-- jQuery (Gerekli!) -->
@@ -54,6 +89,63 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
+    <script type="module">
+      import { auth, db } from './Shared.js';
+      import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+      import { collection, query, where, getDocs, addDoc, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
+      document.addEventListener('DOMContentLoaded', function() {
+        onAuthStateChanged(auth, async user => {
+          if (!user) return;
+          const calendarEl = document.getElementById('calendar');
+          const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            dateClick: info => {
+              document.getElementById('entry-date').value = info.dateStr;
+              $('#entryModal').modal('show');
+            }
+          });
+          // load existing events
+          const eventsQuery = query(collection(db, 'calories'), where('uid', '==', user.uid));
+          const snapshot = await getDocs(eventsQuery);
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            console.log('Loaded calendar event:', data);
+            // determine event date: prefer dateTime, fallback to createdAt
+            const start = data.dateTime
+              ? (data.dateTime.toDate ? data.dateTime.toDate() : data.dateTime)
+              : (data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : null);
+            if (start) {
+              calendar.addEvent({ title: `${data.food} (${data.calories} kcal)`, start });
+            }
+          });
+          calendar.render();
+          // handle new entry submits
+          document.getElementById('entry-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const date = document.getElementById('entry-date').value;
+            const time = document.getElementById('entry-time').value;
+            const dateTime = new Date(date + 'T' + time);
+            const food = document.getElementById('entry-food').value.trim();
+            const calories = parseInt(document.getElementById('entry-calories').value, 10);
+            if (!food || isNaN(calories)) return;
+            const docRef = await addDoc(collection(db, 'calories'), { uid: user.uid, food, calories, createdAt: serverTimestamp(), dateTime: Timestamp.fromDate(dateTime) });
+            calendar.addEvent({ title: `${food} (${calories} kcal)`, start: dateTime });
+            $('#entryModal').modal('hide');
+            e.target.reset();
+          });
+        });
+      });
+    </script>
+    <script>
+      // auto-toggle nav menu on hover
+      $(function() {
+        $('#nav-main').hover(
+          function() { $('#navbarNav').collapse('show'); },
+          function() { $('#navbarNav').collapse('hide'); }
+        );
+      });
+    </script>
 
 </body>
 </html>

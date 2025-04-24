@@ -33,16 +33,16 @@
 <body>
 
     <!-- Navigation -->
-    <nav class="navbar navbar-dark bg-dark fixed-top">
-        <a class="navbar-brand" href="#">Caloria</a>
+    <nav id="nav-main" class="navbar navbar-dark bg-dark fixed-top">
+        <a class="navbar-brand" href="home.html">Belbo</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
-                <li class="nav-item active"><a class="nav-link" href="Home.html">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="Aboutus.html">About Us</a></li>
-                <li class="nav-item"><a class="nav-link" href="Profile.html">Profile</a></li>
+                <li class="nav-item active"><a class="nav-link" href="home.html">Home</a></li>
+                <!-- About Us removed -->
+                <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
                 <li class="nav-item"><a class="nav-link disabled">Disabled</a></li>
             </ul>
         </div>
@@ -157,6 +157,15 @@
   <!-- JS Scripts -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // auto-toggle nav menu on hover
+    $(function() {
+      $('#nav-main').hover(
+        () => $('#navbarNav').collapse('show'),
+        () => $('#navbarNav').collapse('hide')
+      );
+    });
+  </script>
 
 
 </body>
