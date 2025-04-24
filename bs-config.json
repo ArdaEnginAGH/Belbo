@@ -1,5 +1,5 @@
 {
-  "server": { "baseDir": [ "./", "./Favorites" ] },
+  "server": { "baseDir": [ "./Favorites", "./" ] },
   "files": false,
   "watch": false,
   "notify": false

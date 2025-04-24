@@ -1,193 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet" />
-    <style>
-        body {
-          background-image: url('background.jpg');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-        }
-        .fc-daygrid-day:hover { box-shadow: 0 0 8px rgba(0,123,255,0.7); cursor: pointer; }
-    </style>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-    <script type="module" src="Shared.js"></script>
-
-    <title>Home</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Belbo</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet" />
+  <style>
+    .fc-daygrid-day:hover { box-shadow: 0 0 8px rgba(0,123,255,0.7); cursor: pointer; }
+  </style>
+  <!-- Shared.js (modular Firebase setup) -->
+  <script type="module" src="Shared.js"></script>
 </head>
 <body>
-    
-    <nav class="navbar navbar-dark bg-dark navbar-fullwidth" id="nav-main">
-        <a class="navbar-brand" href="index.html">Belbo</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
-            <li class="nav-item active">
-              <a class="nav-link" href="index.html">Home <span class="sr-only">Home</span></a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="profile.html">Profile</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link disabled">Disabled</a>
-            </li>
-            <li class="nav-item">
-              <a id="logoutBtn" class="nav-link" href="#">Logout</a>
-            </li>
-          </ul>
-        </div>
-    </nav>
-    <div id="calendar"></div>
+  <!-- Navbar -->
+  <nav id="nav-main" class="navbar navbar-dark bg-dark fixed-top">
+    <a class="navbar-brand" href="index.html">Belbo</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+        <li class="nav-item disabled"><a class="nav-link">Disabled</a></li>
+        <li class="nav-item"><a id="logoutBtn" class="nav-link" href="#">Logout</a></li>
+      </ul>
+    </div>
+  </nav>
 
-    <!-- Entry Modal -->
-    <div class="modal fade" id="entryModal" tabindex="-1" aria-labelledby="entryModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="entryModalLabel">Add Meal Entry</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <form id="entry-form">
-              <div class="form-group">
-                <label>Date</label>
-                <input type="text" id="entry-date" class="form-control" readonly />
-              </div>
-              <div class="form-group">
-                <label>Food Item</label>
-                <input type="text" id="entry-food" class="form-control" required />
-                <input type="text" id="food-search" class="form-control mt-2" placeholder="Search food items..." />
-                <div id="search-results" class="list-group mt-1"></div>
-              </div>
-              <div class="form-group">
-                <label>Calories</label>
-                <input type="number" id="entry-calories" class="form-control" required />
-              </div>
-              <div class="form-group">
-                <label>Time</label>
-                <input type="time" id="entry-time" class="form-control" required />
-              </div>
-              <button type="submit" class="btn btn-primary">Add Entry</button>
-            </form>
-          </div>
+  <!-- Calendar Container -->
+  <div class="container" style="padding-top:80px">
+    <div id="calendar"></div>
+  </div>
+
+  <!-- Entry Modal -->
+  <div class="modal fade" id="entryModal" tabindex="-1" aria-labelledby="entryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="entryModalLabel">Add Meal Entry</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="entry-form">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="text" id="entry-date" class="form-control" readonly />
+            </div>
+            <div class="form-group">
+              <label>Food Item</label>
+              <input type="text" id="entry-food" class="form-control" required />
+              <input type="text" id="food-search" class="form-control mt-2" placeholder="Search food items..." />
+              <div id="search-results" class="list-group mt-1"></div>
+            </div>
+            <div class="form-group">
+              <label>Calories</label>
+              <input type="number" id="entry-calories" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label>Time</label>
+              <input type="time" id="entry-time" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Add Entry</button>
+          </form>
         </div>
       </div>
     </div>
-    <footer style="background-color: #000; color: #fff; padding: 20px 0; text-align: center;">
-      <div class="container">
-        <p>&copy; 2025 Belbo. All rights reserved.</p>
-        <p>Designed with by Belbo Team</p>
+  </div>
+
+  <!-- Date Events Modal -->
+  <div class="modal fade" id="dateModal" tabindex="-1" aria-labelledby="dateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="dateModalLabel">Meals on <span id="dateModalDate"></span></h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <ul id="date-events-list" class="list-group"></ul>
+        </div>
+        <div class="modal-footer">
+          <button id="date-add-btn" type="button" class="btn btn-primary">Add Meal</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
       </div>
-    </footer>
-    <!-- jQuery (Gerekli!) -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+    </div>
+  </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
-    <script type="module">
-      import { auth, db } from './Shared.js';
-      import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
-      import { collection, query, where, getDocs, addDoc, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
+  <script type="module">
+    import { auth, db } from './Shared.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+    import { collection, query, where, getDocs, addDoc, serverTimestamp, Timestamp, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
 
-      // define food items (sample list; extend or fetch dynamically as needed)
-      const foodItems = [
-        { name: 'apple', icon: 'Favorites/icons8-apple-fruit-100.png' },
-        { name: 'banana', icon: 'Favorites/icons8-banana-100.png' },
-        { name: 'avocado', icon: 'Favorites/icons8-avocado-100.png' },
-        { name: 'bread', icon: 'Favorites/icons8-bread-100.png' },
-        { name: 'carrot', icon: 'Favorites/icons8-carrot-100.png' }
-      ];
+    document.addEventListener('DOMContentLoaded', () => {
+      onAuthStateChanged(auth, async user => {
+        if (!user) return;
 
-      document.addEventListener('DOMContentLoaded', () => {
-        onAuthStateChanged(auth, async user => {
-          if (!user) return;
-          const calendarEl = document.getElementById('calendar');
-          const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            eventContent: arg => {
-              const icon = arg.event.extendedProps.icon;
-              return { html: icon ? `<img src="${icon}" style="width:16px;height:16px;vertical-align:middle;margin-right:4px">${arg.event.title}` : arg.event.title };
-            },
-            dateClick: info => {
-              document.getElementById('entry-date').value = info.dateStr;
-              $('#entryModal').modal('show');
-            }
-          });
-          // load existing events
-          const eventsQuery = query(collection(db, 'calories'), where('uid', '==', user.uid));
-          const snapshot = await getDocs(eventsQuery);
-          snapshot.forEach(doc => {
-            const d = doc.data();
-            const start = d.dateTime ? (d.dateTime.toDate ? d.dateTime.toDate() : d.dateTime) : (d.createdAt && (d.createdAt.toDate ? d.createdAt.toDate() : d.createdAt));
-            if (start) calendar.addEvent({ title: `${d.food} (${d.calories} kcal)`, start, extendedProps: { icon: d.icon || '' } });
-          });
-          calendar.render();
+        // fetch manifest
+        let foodItems = [];
+        fetch('Favorites/manifest.json')
+          .then(r => r.json())
+          .then(j => foodItems = j)
+          .catch(e => console.error('Failed to load food manifest', e));
 
-          // search logic
-          const searchInput = document.getElementById('food-search');
-          const results = document.getElementById('search-results');
-          let selectedIcon = '';
-          searchInput.addEventListener('input', () => {
-            const term = searchInput.value.toLowerCase().trim(); results.innerHTML = '';
-            if (!term) return;
-            foodItems.filter(i => i.name.includes(term)).forEach(item => {
-              const btn = document.createElement('button');
-              btn.type = 'button'; btn.className = 'list-group-item list-group-item-action';
-              btn.innerHTML = `<img src="${item.icon}" width="24" style="margin-right:8px">${item.name}`;
-              btn.onclick = () => { document.getElementById('entry-food').value = item.name; selectedIcon = item.icon; results.innerHTML = ''; searchInput.value = item.name; };
-              results.appendChild(btn);
-            });
-          });
+        const calendarEl = document.getElementById('calendar');
+        // Set up calendar with dateClick showing meal list modal
+        let currentDate = '';
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          eventContent: arg => {
+            const icon = arg.event.extendedProps.icon;
+            return { html: icon ? `<img src="/${icon}" style="width:16px;height:16px;vertical-align:middle;margin-right:4px">${arg.event.title}` : arg.event.title };
+          },
+          dateClick: info => {
+            currentDate = info.dateStr;
+            document.getElementById('dateModalDate').textContent = currentDate;
+            const listEl = document.getElementById('date-events-list');
+            listEl.innerHTML = '';
+            calendar.getEvents()
+              .filter(ev => ev.startStr.split('T')[0] === currentDate)
+              .forEach(ev => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.textContent = ev.title;
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm btn-danger';
+                btn.textContent = 'Delete';
+                btn.onclick = async () => {
+                  await deleteDoc(doc(db, 'calories', ev.extendedProps.docId));
+                  ev.remove();
+                  li.remove();
+                };
+                li.appendChild(btn);
+                listEl.appendChild(li);
+              });
+            $('#dateModal').modal('show');
+          }
+        });
 
-          // form submit
-          document.getElementById('entry-form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const date = document.getElementById('entry-date').value;
-            const time = document.getElementById('entry-time').value;
-            const dt = new Date(`${date}T${time}`);
-            const food = document.getElementById('entry-food').value.trim();
-            const cal = parseInt(document.getElementById('entry-calories').value, 10);
-            if (!food || isNaN(cal)) return;
-            await addDoc(collection(db, 'calories'), { uid: user.uid, food, calories: cal, createdAt: serverTimestamp(), dateTime: Timestamp.fromDate(dt), icon: selectedIcon });
-            calendar.addEvent({ title: `${food} (${cal} kcal)`, start: dt, extendedProps: { icon: selectedIcon } });
-            $('#entryModal').modal('hide'); e.target.reset();
+        // load existing entries
+        const qSnap = await getDocs(query(collection(db, 'calories'), where('uid','==',user.uid)));
+        qSnap.forEach(docSnap => {
+          const d = docSnap.data();
+          const start = d.dateTime ? (d.dateTime.toDate ? d.dateTime.toDate() : d.dateTime) : (d.createdAt ? d.createdAt.toDate() : null);
+          if (start) calendar.addEvent({
+            title: `${d.food} (${d.calories} kcal)`,
+            start,
+            extendedProps: { icon: d.icon||'', docId: docSnap.id }
           });
         });
-      });
-    </script>
-    <script>
-      // auto-toggle nav menu on hover everywhere
-      $(function() { $('#nav-main').hover(
-          () => $('#navbarNav').collapse('show'),
-          () => $('#navbarNav').collapse('hide')
-      ); });
 
-      // attach logout handler
-      document.addEventListener('DOMContentLoaded', () => {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn && window.auth) {
-          logoutBtn.addEventListener('click', async e => {
-            e.preventDefault();
-            try {
-              await auth.signOut();
-              window.location.href = 'login.html';
-            } catch (err) {
-              console.error('Logout failed:', err);
-            }
+        calendar.render();
+        // Hook the Add Meal button in dateModal to entryModal
+        document.getElementById('date-add-btn').onclick = () => {
+          $('#dateModal').modal('hide');
+          document.getElementById('entry-date').value = currentDate;
+          $('#entryModal').modal('show');
+        };
+
+        // search logic
+        const searchInput = document.getElementById('food-search');
+        const results = document.getElementById('search-results');
+        let selectedIcon = '';
+        searchInput.addEventListener('input', () => {
+          const term = searchInput.value.toLowerCase().trim(); results.innerHTML = '';
+          if (!term) return;
+          foodItems.filter(i=>i.name.includes(term)).forEach(item=>{
+            const btn = document.createElement('button'); btn.type='button'; btn.className='list-group-item list-group-item-action';
+            btn.innerHTML = `<img src="/${item.icon}" width="24" style="margin-right:8px">${item.name}`;
+            btn.onclick = ()=>{document.getElementById('entry-food').value=item.name; selectedIcon=item.icon; searchInput.value=item.name; results.innerHTML='';};
+            results.appendChild(btn);
           });
-        }
+        });
+
+        // handle submit
+        document.getElementById('entry-form').addEventListener('submit', async e => {
+          e.preventDefault();
+          const date = document.getElementById('entry-date').value;
+          const time = document.getElementById('entry-time').value;
+          const dt = new Date(`${date}T${time}`);
+          const food = document.getElementById('entry-food').value.trim();
+          const cal = parseInt(document.getElementById('entry-calories').value,10);
+          if (!food||isNaN(cal)) return;
+          await addDoc(collection(db,'calories'),{uid:user.uid,food,calories:cal,createdAt:serverTimestamp(),dateTime:Timestamp.fromDate(dt),icon:selectedIcon});
+          calendar.addEvent({title:`${food} (${cal} kcal)`,start:dt,extendedProps:{icon:selectedIcon}});
+          $('#entryModal').modal('hide'); e.target.reset();
+        });
       });
-    </script>
+
+      // logout handler
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) logoutBtn.addEventListener('click', async e=>{e.preventDefault();await auth.signOut();window.location.href='login.html';});
+    });
+  </script>
+  <script>
+    // navbar hover toggle
+    $(function(){$('#nav-main').hover(()=>$('#navbarNav').collapse('show'),()=>$('#navbarNav').collapse('hide'));});
+  </script>
 </body>
 </html>
