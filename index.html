@@ -10,6 +10,10 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet" />
   <style>
     .fc-daygrid-day:hover { box-shadow: 0 0 8px rgba(0,123,255,0.7); cursor: pointer; }
+    /* always center navbar items */
+    #nav-main .navbar-nav {
+      width: 100%; display: flex; justify-content: center;
+    }
   </style>
   <!-- Shared.js (modular Firebase setup) -->
   <script type="module" src="Shared.js"></script>
@@ -17,18 +21,12 @@
 <body>
   <!-- Navbar -->
   <nav id="nav-main" class="navbar navbar-dark bg-dark fixed-top">
-    <a class="navbar-brand" href="index.html">Belbo</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
-        <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
-        <li class="nav-item disabled"><a class="nav-link">Disabled</a></li>
-        <li class="nav-item"><a id="logoutBtn" class="nav-link" href="#">Logout</a></li>
-      </ul>
-    </div>
+    <ul class="navbar-nav flex-row">
+      <li class="nav-item mx-3"><a class="navbar-brand" href="index.html">Belbo</a></li>
+      <li class="nav-item mx-3"><a class="nav-link" href="index.html">Home</a></li>
+      <li class="nav-item mx-3"><a class="nav-link" href="profile.html">Profile</a></li>
+      <li class="nav-item mx-3"><a id="logoutBtn" class="nav-link" href="#">Logout</a></li>
+    </ul>
   </nav>
 
   <!-- Calendar Container -->
@@ -119,6 +117,7 @@
         let currentDate = '';
         const calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
+          showNonCurrentDates: false, // only show days of the current month
           eventContent: arg => {
             const icon = arg.event.extendedProps.icon;
             return { html: icon ? `<img src="/${icon}" style="width:16px;height:16px;vertical-align:middle;margin-right:4px">${arg.event.title}` : arg.event.title };
@@ -255,9 +254,6 @@
       if (logoutBtn) logoutBtn.addEventListener('click', async e=>{e.preventDefault();await auth.signOut();window.location.href='login.html';});
     });
   </script>
-  <script>
-    // navbar hover toggle
-    $(function(){$('#nav-main').hover(()=>$('#navbarNav').collapse('show'),()=>$('#navbarNav').collapse('hide'));});
-  </script>
+  <!-- removed obsolete collapse script since navbar is always visible -->
 </body>
 </html>

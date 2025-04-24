@@ -4,6 +4,13 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  onSnapshot,
+  Timestamp,
 } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -22,19 +29,88 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          inputs[0].value = data.firstName || "";
-          inputs[1].value = data.lastName || "";
-          inputs[2].value = data.phone || "";
-          inputs[3].value = data.age || "";
-          inputs[4].value = data.email || "";
-          inputs[5].value = data.weight || "";
-          inputs[6].value = data.height || "";
-          inputs[7].value = data.caloriGoal || "";
-        } else {
-          console.log("No such document!");
+        const data = docSnap.exists() ? docSnap.data() : {};
+        inputs[0].value = data.firstName || "";
+        inputs[1].value = data.lastName || "";
+        inputs[2].value = data.phone || "";
+        inputs[3].value = data.age || "";
+        inputs[4].value = data.email || "";
+        inputs[5].value = data.weight || "";
+        inputs[6].value = data.height || "";
+        inputs[7].value = data.caloriGoal || "";
+
+        // Calculate and display current BMI
+        const weight = parseFloat(data.weight);
+        const height = parseFloat(data.height);
+        if (!isNaN(weight) && !isNaN(height) && height > 0) {
+          const bmi = weight / ((height / 100) * (height / 100));
+          document.getElementById("current-bmi").innerText = bmi.toFixed(1);
         }
+        // Calculate today's total calories
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+        const calRef = collection(db, "calories");
+        const q = query(
+          calRef,
+          where("uid", "==", uid),
+          where("dateTime", ">=", start),
+          where("dateTime", "<=", end)
+        );
+        const snapshot = await getDocs(q);
+        let sum = 0;
+        snapshot.forEach((doc) => {
+          sum += doc.data().calories || 0;
+        });
+        document.getElementById("today-calories").innerText = sum;
+
+        // Set avatar if saved
+        if (data.photoData) {
+          document.getElementById("profileAvatar").src = data.photoData;
+        }
+        // Listen to today's calories in real time
+        const today = new Date();
+        const startDate = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate()
+        );
+        const endDate = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate(),
+          23,
+          59,
+          59,
+          999
+        );
+        const startTS = Timestamp.fromDate(startDate);
+        const endTS = Timestamp.fromDate(endDate);
+        const calQuery = query(
+          collection(db, "calories"),
+          where("uid", "==", uid),
+          where("dateTime", ">=", startTS),
+          where("dateTime", "<=", endTS)
+        );
+        onSnapshot(calQuery, (snap) => {
+          let total = 0;
+          snap.forEach((doc) => (total += doc.data().calories || 0));
+          document.getElementById("today-calories").innerText = total;
+        });
+        // Handle profile picture upload
+        const fileInput = document.getElementById("profilePicInput");
+        fileInput.addEventListener("change", async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = async (evt) => {
+            const dataUrl = evt.target.result;
+            document.getElementById("profileAvatar").src = dataUrl;
+            await updateDoc(docRef, { photoData: dataUrl });
+          };
+          reader.readAsDataURL(file);
+        });
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
@@ -71,7 +147,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     try {
-      await setDoc(doc(db, "users", uid), userData);
+      // merge profile data to preserve photoData
+      await setDoc(doc(db, "users", uid), userData, { merge: true });
       alert("Profile updated successfully!");
       inputs.forEach((input) => (input.disabled = true));
       saveButton.disabled = true;
