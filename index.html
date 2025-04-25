@@ -135,6 +135,14 @@
       color: #f0f0f0;
       box-shadow: 0 0 0 0.2rem rgba(100, 150, 200, 0.25);
     }
+
+    /* Ensure readonly inputs match the theme */
+    .form-control[readonly] {
+      background-color: #444; /* Same as normal */
+      color: #e0e0e0; /* Same as normal */
+      border-color: #555; /* Same as normal */
+      opacity: 0.8; /* Slightly indicate it's readonly */
+    }
     
     .close {
       color: #e0e0e0;
@@ -211,6 +219,29 @@
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       margin-bottom: 30px;
     }
+
+    /* Styling for the calorie alert bar */
+    #calorie-alert {
+      background-color: rgba(40, 40, 40, 0.85);
+      border: 1px solid rgba(100, 150, 200, 0.3);
+      border-radius: 8px;
+      color: #e0e0e0;
+      padding: 0.75rem 1.25rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    #calorie-alert.alert-danger {
+      background-color: rgba(139, 0, 0, 0.85);
+      border-color: rgba(255, 100, 100, 0.5);
+      color: #ffffff;
+    }
+    #calorie-alert.alert-info {
+      background-color: rgba(70, 130, 180, 0.85);
+      border-color: rgba(100, 180, 255, 0.5);
+      color: #ffffff;
+    }
+
   </style>
   <!-- Shared.js (modular Firebase setup) -->
   <script type="module" src="Shared.js"></script>
@@ -228,9 +259,13 @@
 
   <!-- Calendar Container -->
   <div class="container" style="padding-top:80px">
+    <!-- Calorie Suggestion Alert -->
+    <div id="calorie-alert" class="alert mb-3" role="alert" style="display: none; font-weight: bold; text-align: center;"></div>
+
     <div class="calendar-container">
       <div id="calendar"></div>
     </div>
+    <noscript><p style="color: red; text-align: center;">JavaScript is disabled or your calendar failed to load.</p></noscript>
   </div>
 
   <!-- Entry Modal -->
@@ -259,9 +294,10 @@
               <button type="button" id="add-ingredient-btn" class="btn btn-sm btn-outline-primary ml-2">+ Add Ingredient</button>
               <div id="ingredients-container" class="mt-2"></div>
             </div>
-            <div class="form-group">
-              <label>Photo</label>
-              <input type="file" id="entry-photo" class="form-control-file" accept="image/*" />
+            <!-- Add this new form group for total calories -->
+            <div class="form-group" id="total-calories-group">
+              <label>Total Calories (if not adding ingredients)</label>
+              <input type="number" id="entry-total-calories" class="form-control" placeholder="Enter total kcal" min="0" />
             </div>
             <div class="form-group">
               <label>Time</label>
@@ -286,6 +322,10 @@
         </div>
         <div class="modal-body">
           <ul id="date-events-list" class="list-group"></ul>
+          <!-- Daily Calorie Summary -->
+          <div id="daily-summary" class="mt-3 pt-3 border-top" style="font-weight: bold;">
+            Total Calories Today: <span id="daily-total-calories">0</span> kcal
+          </div>
         </div>
         <div class="modal-footer">
           <button id="date-add-btn" type="button" class="btn btn-primary">Add Meal</button>
@@ -302,38 +342,241 @@
   <script type="module">
     import { auth, db } from './Shared.js';
     import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
-    import { collection, query, where, getDocs, addDoc, serverTimestamp, Timestamp, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
+    import { collection, query, where, getDocs, addDoc, serverTimestamp, Timestamp, deleteDoc, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js';
     import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js';
 
+    // --- Health Facts ---
+    const healthFacts = [
+      "Drink plenty of water throughout the day to stay hydrated.",
+      "Aim for at least 5 servings of fruits and vegetables daily.",
+      "Choose whole grains like brown rice, quinoa, and oats over refined grains.",
+      "Incorporate lean protein sources like chicken, fish, beans, and lentils into your meals.",
+      "Healthy fats found in avocados, nuts, seeds, and olive oil are essential.",
+      "Limit processed foods high in sugar, sodium, and unhealthy fats.",
+      "Practice portion control to manage calorie intake effectively.",
+      "Read food labels to understand nutritional content and ingredients.",
+      "Cook more meals at home to have better control over ingredients.",
+      "Fiber aids digestion and helps you feel full longer.",
+      "Breakfast kickstarts your metabolism for the day.",
+      "Snack smart with fruits, nuts, or yogurt instead of sugary treats.",
+      "Limit sugary drinks like soda and sweetened juices.",
+      "Calcium and Vitamin D are crucial for bone health.",
+      "Iron is important for carrying oxygen in the blood; find it in lean meats and leafy greens.",
+      "Potassium helps regulate blood pressure; bananas and potatoes are good sources.",
+      "Mindful eating involves paying attention to your food and hunger cues.",
+      "Regular physical activity complements a healthy diet.",
+      "Adequate sleep is vital for overall health and weight management.",
+      "Manage stress through techniques like meditation or yoga.",
+      "Berries are packed with antioxidants.",
+      "Leafy greens like spinach and kale are nutrient powerhouses.",
+      "Omega-3 fatty acids (in fish) support brain and heart health.",
+      "Probiotics (in yogurt, kefir) promote a healthy gut microbiome.",
+      "Limit red meat consumption and choose leaner cuts.",
+      "Avoid trans fats, often found in processed baked goods and fried foods.",
+      "Herbs and spices can flavor food without adding salt or calories.",
+      "Eating a variety of colorful foods ensures a wide range of nutrients.",
+      "Plan your meals for the week to make healthier choices easier.",
+      "Don't skip meals, as it can lead to overeating later.",
+      "Listen to your body's hunger and fullness signals.",
+      "Dark chocolate (in moderation) has antioxidant benefits.",
+      "Green tea is rich in antioxidants and may boost metabolism.",
+      "Limit alcohol consumption.",
+      "Vitamin C (in citrus fruits, peppers) boosts the immune system.",
+      "Zinc is important for immune function and wound healing.",
+      "Magnesium plays a role in muscle function and energy production.",
+      "Beans and legumes are excellent sources of plant-based protein and fiber.",
+      "Nuts and seeds provide healthy fats, protein, and fiber.",
+      "Hydration is key for skin health.",
+      "Eating slowly can help you recognize fullness and eat less.",
+      "Balance your plate: aim for 1/2 veggies, 1/4 protein, 1/4 whole grains.",
+      "Fermented foods like kimchi and sauerkraut support gut health.",
+      "Choose grilling, baking, or steaming over frying.",
+      "Limit added sugars in coffee and tea.",
+      "Be mindful of hidden sugars in sauces and dressings.",
+      "Whole fruits are better than fruit juice due to fiber content.",
+      "Eggs are a great source of high-quality protein.",
+      "Sweet potatoes are rich in Vitamin A and fiber.",
+      "Mushrooms offer B vitamins and minerals.",
+      "Tomatoes are a good source of lycopene, an antioxidant.",
+      "Garlic has potential immune-boosting properties.",
+      "Onions provide antioxidants and flavor.",
+      "Bell peppers are high in Vitamin C.",
+      "Broccoli contains sulforaphane, linked to health benefits.",
+      "Cauliflower is a versatile, low-calorie vegetable.",
+      "Salmon is rich in omega-3s and Vitamin D.",
+      "Sardines are a budget-friendly source of omega-3s and calcium.",
+      "Tuna (in moderation) provides lean protein.",
+      "Greek yogurt is higher in protein than regular yogurt.",
+      "Cottage cheese is a good source of protein.",
+      "Lentils are inexpensive and packed with fiber and protein.",
+      "Chickpeas are versatile for salads, hummus, or roasting.",
+      "Quinoa is a complete protein, containing all essential amino acids.",
+      "Oats can help lower cholesterol levels.",
+      "Almonds are rich in Vitamin E and magnesium.",
+      "Walnuts provide omega-3s and antioxidants.",
+      "Chia seeds are high in fiber, omega-3s, and calcium.",
+      "Flaxseeds are another great source of fiber and omega-3s.",
+      "Olive oil (extra virgin) is a staple of the healthy Mediterranean diet.",
+      "Avocado provides monounsaturated fats and potassium.",
+      "Watermelon is hydrating and contains lycopene.",
+      "Oranges are famous for their Vitamin C content.",
+      "Apples contain fiber and antioxidants.",
+      "Bananas offer potassium and quick energy.",
+      "Spinach is loaded with iron, calcium, and vitamins.",
+      "Carrots are known for beta-carotene (Vitamin A).",
+      "Blueberries are antioxidant superstars.",
+      "Strawberries provide Vitamin C and manganese.",
+      "Raspberries are high in fiber.",
+      "Black beans are a good source of fiber and folate.",
+      "Kidney beans provide protein and iron.",
+      "Edamame (young soybeans) are a complete plant protein.",
+      "Tofu is a versatile soy-based protein.",
+      "Tempeh is a fermented soy product rich in protein and probiotics.",
+      "Seaweed is rich in iodine and other minerals.",
+      "Turmeric contains curcumin, known for its anti-inflammatory properties.",
+      "Ginger can aid digestion and reduce nausea.",
+      "Cinnamon may help regulate blood sugar.",
+      "Small, consistent changes lead to long-term health improvements.",
+      "Focus on adding healthy foods rather than just restricting unhealthy ones.",
+      "A balanced diet supports mental well-being too.",
+      "Don't demonize specific foods; focus on overall dietary patterns.",
+      "Stay curious and try new healthy foods and recipes.",
+      "Consult a doctor or registered dietitian for personalized advice.",
+      "Health is a journey, not a destination; be patient with yourself.",
+      "Celebrate non-scale victories like having more energy or sleeping better.",
+      "Find enjoyable ways to be active.",
+      "Cooking with family or friends can make healthy eating more fun."
+    ];
+
+    // Function to get a random health fact string
+    const getRandomFact = () => {
+      if (healthFacts.length > 0) {
+        const randomIndex = Math.floor(Math.random() * healthFacts.length);
+        return `Health Tip: ${healthFacts[randomIndex]}`;
+      }
+      return null; // Return null if no facts available
+    };
+    // --- End Health Facts ---
+
+    // Counter for triggering fact display
+    let interactionCounter = 0;
+    const FACT_DISPLAY_THRESHOLD = 3; // Show fact roughly every 3 interactions
+
     document.addEventListener('DOMContentLoaded', () => {
+      const calorieAlertEl = document.getElementById('calorie-alert');
+      let userCalorieGoal = null;
+      let interactionCounter = 0;
+      const FACT_DISPLAY_THRESHOLD = 3;
+
+      // Function to update calorie alert message and potentially show a fact
+      // NOTE: This function now relies on calculateDailyTotal being defined within its calling scope (onAuthStateChanged)
+      const updateCalorieAlert = (currentCalories, dateStr) => {
+        // ... (rest of updateCalorieAlert logic remains the same)
+        interactionCounter++; // Increment counter on each call
+        const todayStr = new Date().toISOString().split('T')[0];
+        const displayDate = dateStr === todayStr ? "Today's" : `Total for ${dateStr}:`;
+        let alertText = '';
+
+        if (userCalorieGoal === null || currentCalories === null) {
+          calorieAlertEl.style.display = 'none';
+          return;
+        }
+
+        // Determine base alert text
+        if (currentCalories > userCalorieGoal) {
+          alertText = `Warning: You've exceeded your goal of ${userCalorieGoal} kcal for ${dateStr}! Current: ${currentCalories} kcal.`;
+          calorieAlertEl.className = 'alert alert-danger mb-3';
+        } else if (currentCalories > 0) {
+          alertText = `${displayDate} ${currentCalories} kcal. Goal: ${userCalorieGoal} kcal.`;
+          calorieAlertEl.className = 'alert alert-info mb-3';
+        } else {
+          alertText = `Goal for ${dateStr}: ${userCalorieGoal} kcal. No entries yet.`;
+          calorieAlertEl.className = 'alert alert-secondary mb-3';
+        }
+
+        // Decide whether to show a health fact (random chance based on counter)
+        if (interactionCounter % FACT_DISPLAY_THRESHOLD === 0 && Math.random() < 0.75) { // Show on threshold + 75% chance
+            const fact = getRandomFact(); // Assumes getRandomFact is defined globally or accessible
+            if (fact) {
+                alertText += `<br><small style="font-style: italic;">${fact}</small>`; // Append fact on new line
+            }
+        } else if (interactionCounter > 100) {
+            interactionCounter = 0; // Reset counter periodically
+        }
+
+        calorieAlertEl.innerHTML = alertText; // Use innerHTML to render the <br> and <small>
+        calorieAlertEl.style.display = 'block';
+      };
+
+      // Function to calculate total calories for a specific date - MOVED INSIDE onAuthStateChanged
+      // const calculateDailyTotal = (dateStr) => { ... };
+
       onAuthStateChanged(auth, async user => {
-        if (!user) return;
+        if (!user) {
+          window.location.href = 'login.html';
+          return;
+        }
         const storage = getStorage();
+
+        // Fetch user's calorie goal
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            userCalorieGoal = userDocSnap.data().caloriGoal ? parseInt(userDocSnap.data().caloriGoal, 10) : null;
+          }
+        } catch (error) {
+          console.error("Error fetching user goal:", error);
+          userCalorieGoal = null;
+        }
 
         // fetch manifest
         let foodItems = [];
         fetch('Favorites/manifest.json')
           .then(r => r.json())
           .then(j => foodItems = j)
-          .catch(e => console.error('Failed to load food manifest', e));
+          .catch(e => console.warn('Manifest not found (expected if empty)', e));
 
         const calendarEl = document.getElementById('calendar');
-        // Set up calendar with dateClick showing meal list modal
-        let currentDate = '';
-        const calendar = new FullCalendar.Calendar(calendarEl, {
+        if (!calendarEl) {
+          console.error('Calendar container #calendar not found.');
+          return;
+        }
+        let currentDate = ''; // Variable to store the currently selected date
+        let calendar = null; // Declare calendar variable here
+
+        // Define calculateDailyTotal HERE, inside onAuthStateChanged
+        const calculateDailyTotal = (dateStr) => {
+          let total = 0;
+          if (!calendar) return 0; // Check if calendar is initialized
+          calendar.getEvents()
+            .filter(ev => ev.start && ev.startStr.split('T')[0] === dateStr) // Added check for ev.start
+            .forEach(ev => {
+              const match = ev.title.match(/\((\d+)\s*kcal\)/);
+              if (match && match[1]) {
+                total += parseInt(match[1], 10);
+              }
+            });
+          return total;
+        };
+
+        // Initialize Calendar
+        calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
-          showNonCurrentDates: false, // only show days of the current month
+          showNonCurrentDates: false,
           eventContent: arg => {
             const icon = arg.event.extendedProps.icon;
             return { html: icon ? `<img src="/${icon}" style="width:16px;height:16px;vertical-align:middle;margin-right:4px">${arg.event.title}` : arg.event.title };
           },
           dateClick: info => {
-            currentDate = info.dateStr;
+            currentDate = info.dateStr; // Set currentDate when a date is clicked
             document.getElementById('dateModalDate').textContent = currentDate;
             const listEl = document.getElementById('date-events-list');
             listEl.innerHTML = '';
+            let dailyTotal = 0;
+
             calendar.getEvents()
-              .filter(ev => ev.startStr.split('T')[0] === currentDate)
+              .filter(ev => ev.start && ev.startStr.split('T')[0] === currentDate) // Added check for ev.start
               .forEach(ev => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
@@ -345,17 +588,12 @@
                   await deleteDoc(doc(db, 'calories', ev.extendedProps.docId));
                   ev.remove();
                   li.remove();
+                  // Recalculate and update after delete
+                  const newTotal = calculateDailyTotal(currentDate); // Use scoped function
+                  document.getElementById('daily-total-calories').textContent = newTotal;
+                  updateCalorieAlert(newTotal, currentDate);
                 };
                 li.appendChild(btn);
-                // render photo if available
-                if (ev.extendedProps.photoURL) {
-                  const img = document.createElement('img');
-                  img.src = ev.extendedProps.photoURL;
-                  img.alt = 'Meal photo';
-                  img.style.maxWidth = '100%';
-                  img.style.margin = '5px 0';
-                  li.appendChild(img);
-                }
                 // render ingredients sub-list
                 if (ev.extendedProps.ingredients && ev.extendedProps.ingredients.length) {
                   const subList = document.createElement('ul');
@@ -368,7 +606,18 @@
                   li.appendChild(subList);
                 }
                 listEl.appendChild(li);
+
+                // Calculate total while iterating
+                const match = ev.title.match(/\((\d+)\s*kcal\)/);
+                if (match && match[1]) {
+                  dailyTotal += parseInt(match[1], 10);
+                }
               });
+
+            // Update modal summary and main page alert
+            document.getElementById('daily-total-calories').textContent = dailyTotal;
+            document.querySelector('#daily-summary').innerHTML = `Total Calories for ${currentDate}: <span id="daily-total-calories">${dailyTotal}</span> kcal`;
+            updateCalorieAlert(dailyTotal, currentDate);
             $('#dateModal').modal('show');
           }
         });
@@ -386,12 +635,52 @@
         });
 
         calendar.render();
-        // Hook the Add Meal button in dateModal to entryModal
-        document.getElementById('date-add-btn').onclick = () => {
-          $('#dateModal').modal('hide');
-          document.getElementById('entry-date').value = currentDate;
-          $('#entryModal').modal('show');
-        };
+
+        // Initial check for today's date after loading
+        const todayStr = new Date().toISOString().split('T')[0];
+        const initialTotal = calculateDailyTotal(todayStr); // Use scoped function
+        updateCalorieAlert(initialTotal, todayStr);
+
+        // Hook the Add Meal button in dateModal to entryModal using modal events
+        const addMealButton = document.getElementById('date-add-btn');
+        const dateModalEl = document.getElementById('dateModal');
+        const entryModalEl = document.getElementById('entryModal');
+        let openEntryModalOnHide = false; // Flag to control opening entry modal
+
+        if (addMealButton && dateModalEl && entryModalEl) {
+            addMealButton.addEventListener('click', () => {
+                openEntryModalOnHide = true; // Set flag when Add Meal is clicked
+                $(dateModalEl).modal('hide');
+            });
+
+            // Listen for when the date modal is fully hidden
+            $(dateModalEl).on('hidden.bs.modal', function (e) {
+                if (openEntryModalOnHide) { // Only proceed if the flag is true
+                    openEntryModalOnHide = false; // Reset the flag
+
+                    // Ensure currentDate has a value (from the last dateClick)
+                    // ... existing code to set targetDate ...
+                    const targetDate = currentDate || new Date().toISOString().split('T')[0];
+
+                    // Reset the entry form completely
+                    // ... existing code to reset form ...
+                    const entryForm = document.getElementById('entry-form');
+                    if (entryForm) entryForm.reset();
+                    document.getElementById('search-results').innerHTML = '';
+                    document.getElementById('ingredients-container').innerHTML = '';
+
+                    // Set the date on the reset form
+                    // ... existing code to set date and time ...
+                    document.getElementById('entry-date').value = targetDate;
+                    document.getElementById('entry-time').value = '12:00';
+
+                    // Now, show the entry modal
+                    $(entryModalEl).modal('show');
+                }
+            });
+        } else {
+            console.error("Could not find required elements for Add Meal button logic (date-add-btn, dateModal, entryModal).");
+        }
 
         // search logic
         const searchInput = document.getElementById('entry-food');
@@ -410,95 +699,126 @@
 
         // handle submit
         document.getElementById('entry-form').addEventListener('submit', async e => {
-          e.preventDefault();
+          e.preventDefault(); // Prevents default form submission
           const date = document.getElementById('entry-date').value;
           const time = document.getElementById('entry-time').value;
-          const dt = new Date(`${date}T${time}`);
-          const mealName = document.getElementById('entry-food').value.trim();
-          // gather ingredients details
-
-          // upload photo file if provided
-          const fileInput = document.getElementById('entry-photo');
+          const mealName = document.getElementById('entry-food').value;
+          const ingredientsContainer = document.getElementById('ingredients-container');
+          const totalCaloriesInput = document.getElementById('entry-total-calories');
+          let calories = 0;
+          let ingredientsData = [];
           let photoURL = '';
-          if (fileInput.files.length) {
-            const file = fileInput.files[0];
-            const photoRef = storageRef(storage, `mealPhotos/${user.uid}/${Date.now()}_${file.name}`);
-            await uploadBytes(photoRef, file);
-            photoURL = await getDownloadURL(photoRef);
+
+          // Check if ingredients were added
+          if (ingredientsContainer.children.length > 0) {
+            // Calculate calories from ingredients
+            ingredientsContainer.querySelectorAll('.ingredient-row').forEach(row => {
+                const name = row.querySelector('.ingredient-name').value;
+                const quantity = parseFloat(row.querySelector('.ingredient-quantity').value) || 0;
+                const caloriesPerUnit = parseFloat(row.querySelector('.ingredient-calories').value) || 0;
+                if (name && quantity > 0 && caloriesPerUnit >= 0) {
+                    calories += quantity * caloriesPerUnit;
+                    ingredientsData.push({ name, quantity, caloriesPerUnit });
+                }
+            });
+          } else {
+            // Get calories from the total calories input
+            calories = parseFloat(totalCaloriesInput.value) || 0;
           }
 
-          const rows = document.querySelectorAll('.ingredient-row');
-          const ingredients = [];
-          let totalCalories = 0;
+          // Basic validation
+          if (!mealName || calories <= 0 || !date || !time) {
+            alert('Please fill in Meal Name, Date, Time, and ensure calories are greater than 0 (either via ingredients or total).');
+            return; // Stop submission
+          }
 
-          rows.forEach(row => {
-            const name = row.querySelector('.ingredient-name').value.trim();
-            const calPer = parseFloat(row.querySelector('.ingredient-calories').value);
-            const qty = parseFloat(row.querySelector('.ingredient-qty').value);
-            if (name && !isNaN(calPer) && !isNaN(qty)) {
-              ingredients.push({ name, caloriesPerUnit: calPer, quantity: qty });
-              totalCalories += calPer * qty;
-            }
-          });
-          if (!mealName || ingredients.length === 0) return;
-          const docRef = await addDoc(collection(db,'calories'),{
-            uid: user.uid,
-            mealName,
-            ingredients,
-            calories: totalCalories,
-            createdAt: serverTimestamp(),
-            dateTime: Timestamp.fromDate(dt),
-            icon: selectedIcon,
-            photoURL
-          });
-          calendar.addEvent({
-            title: `${mealName} (${Math.round(totalCalories)} kcal)`,
-            start: dt,
-            extendedProps: { icon: selectedIcon, docId: docRef.id, ingredients, photoURL }
-          });
-          $('#entryModal').modal('hide'); e.target.reset();
-        });
+          // Combine date and time for Firestore Timestamp
+          const dateTime = new Date(`${date}T${time}`);
 
-        // add ingredient button handler
-        document.getElementById('add-ingredient-btn').addEventListener('click', () => {
-          const container = document.getElementById('ingredients-container');
-          const row = document.createElement('div');
-          row.className = 'ingredient-row mb-2';
-          row.innerHTML = `
-            <input type="text" class="form-control ingredient-name" placeholder="Search ingredient..." required />
-            <ul class="list-group suggestions"></ul>
-            <input type="number" class="form-control ingredient-calories" placeholder="Calories per unit" required />
-            <div class="input-group mt-1">
-              <input type="range" min="1" max="10" value="1" class="ingredient-qty form-control-range" />
-              <span class="qty-display ml-2">1</span>
-              <button class="btn btn-outline-danger remove-ingredient-btn ml-2" type="button">&times;</button>
-            </div>
-          `;
-          container.appendChild(row);
-          // remove row
-          row.querySelector('.remove-ingredient-btn').addEventListener('click', () => row.remove());
-          // qty slider display
-          const qtyInput = row.querySelector('.ingredient-qty');
-          const display = row.querySelector('.qty-display');
-          qtyInput.addEventListener('input', () => display.textContent = qtyInput.value);
-          // ingredient search in this row
-          const nameInput = row.querySelector('.ingredient-name');
-          const suggestEl = row.querySelector('.suggestions');
-          nameInput.addEventListener('input', () => {
-            const term = nameInput.value.toLowerCase().trim();
-            suggestEl.innerHTML = '';
-            if (!term) return;
-            foodItems.filter(item => item.name.includes(term)).slice(0,5).forEach(item => {
-              const li = document.createElement('li');
-              li.className = 'list-group-item';
-              li.textContent = item.name;
-              li.addEventListener('click', () => { nameInput.value = item.name; suggestEl.innerHTML = ''; });
-              suggestEl.appendChild(li);
+          // Add entry to Firestore
+          try {
+            const docRef = await addDoc(collection(db, 'calories'), {
+              uid: user.uid,
+              mealName,
+              calories: Math.round(calories), // Store rounded calories
+              dateTime: Timestamp.fromDate(dateTime),
+              createdAt: serverTimestamp(),
+              icon: selectedIcon, // Use the icon selected from search
+              ingredients: ingredientsData, // Store ingredients array
             });
-          });
-        });
-      });
 
+            // Add event to calendar
+            calendar.addEvent({
+              title: `${mealName} (${Math.round(calories)} kcal)`,
+              start: dateTime,
+              extendedProps: { icon: selectedIcon, docId: docRef.id, ingredients: ingredientsData }
+            });
+
+            // Recalculate daily total and update alert
+            const currentTotal = calculateDailyTotal(date); // Use scoped function
+            updateCalorieAlert(currentTotal, date);
+
+            // Reset form and close modal
+            e.target.reset();
+            selectedIcon = ''; // Reset selected icon
+            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('ingredients-container').innerHTML = ''; // Clear ingredients
+            updateTotalCaloriesVisibility(); // Ensure total calories input is visible again
+            $('#entryModal').modal('hide');
+
+          } catch (error) {
+            console.error("Error adding document: ", error);
+            alert("Failed to save entry.");
+          }
+        }); // End of submit listener
+
+        // --- Ingredient Handling --- 
+        const addIngredientBtn = document.getElementById('add-ingredient-btn');
+        const ingredientsContainer = document.getElementById('ingredients-container');
+        const totalCaloriesGroup = document.getElementById('total-calories-group');
+        const totalCaloriesInput = document.getElementById('entry-total-calories');
+
+        // Function to update visibility of total calories input
+        const updateTotalCaloriesVisibility = () => {
+            const hasIngredients = ingredientsContainer.children.length > 0;
+            totalCaloriesGroup.style.display = hasIngredients ? 'none' : 'block';
+            if (hasIngredients) {
+                totalCaloriesInput.value = ''; // Clear total calories if ingredients are added
+            }
+        };
+
+        addIngredientBtn.addEventListener('click', () => {
+            const ingredientRow = document.createElement('div');
+            ingredientRow.className = 'input-group mb-2 ingredient-row';
+            ingredientRow.innerHTML = `
+                <input type="text" class="form-control ingredient-name" placeholder="Ingredient Name" required>
+                <input type="number" class="form-control ingredient-quantity" placeholder="Qty" min="1" value="1" required style="max-width: 70px;">
+                <input type="number" class="form-control ingredient-calories" placeholder="kcal/unit" min="0" required style="max-width: 90px;">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-danger remove-ingredient-btn" type="button">X</button>
+                </div>
+            `;
+            ingredientsContainer.appendChild(ingredientRow);
+            updateTotalCaloriesVisibility(); // Hide total calories input
+
+            // Add event listener to the new remove button
+            ingredientRow.querySelector('.remove-ingredient-btn').addEventListener('click', (e) => {
+                e.target.closest('.ingredient-row').remove();
+                updateTotalCaloriesVisibility(); // Check if total calories should be shown again
+            });
+        });
+
+        // Initial visibility check when modal might open
+        $('#entryModal').on('show.bs.modal', function () {
+            // Clear existing ingredients when modal opens
+            ingredientsContainer.innerHTML = ''; 
+            updateTotalCaloriesVisibility();
+        });
+        // --- End Ingredient Handling ---
+
+        // search logic
+        
+      });
       // logout handler
       const logoutBtn = document.getElementById('logoutBtn');
       if (logoutBtn) logoutBtn.addEventListener('click', async e=>{e.preventDefault();await auth.signOut();window.location.href='login.html';});
