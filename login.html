@@ -43,25 +43,127 @@
         alert('Facebook login failed: ' + err.message);
       }
     }
+    
+    // Motivational message feature
+    window.addEventListener('DOMContentLoaded', () => {
+      const messageContainer = document.getElementById('motivational-message');
+      const messages = [
+        "Track your calories, transform your life.",
+        "Small changes today, big results tomorrow.",
+        "The journey of health begins with a single meal.",
+        "Your body deserves the best — fuel it properly.",
+        "Every healthy choice is a step toward your goals.",
+        "Be mindful of what you eat, be proud of what you achieve.",
+        "Consistency is the key to lasting health.",
+        "Your health is an investment, not an expense.",
+        "Balance in nutrition leads to balance in life.",
+        "Today's choices shape tomorrow's health.",
+        "Knowledge is power — know your calories.",
+        "Eating well is a form of self-respect.",
+        "Health is wealth — invest wisely.",
+        "The first wealth is health — Ralph Waldo Emerson",
+        "Take care of your body. It's the only place you have to live.",
+        "Good nutrition creates health in all areas of our existence.",
+        "A healthy outside starts from the inside.",
+        "Let food be thy medicine — Hippocrates",
+        "The greatest wealth is health — Virgil",
+        "Healthy eating is a way of life, not a diet."
+      ];
+      
+      // Initially display a random message
+      setRandomMessage();
+      
+      // Change message every 5 seconds
+      const messageInterval = setInterval(setRandomMessage, 5000);
+      
+      function setRandomMessage() {
+        const randomIndex = Math.floor(Math.random() * messages.length);
+        messageContainer.innerHTML = messages[randomIndex];
+        messageContainer.classList.add('message-transition');
+        
+        // Reset transition after it completes
+        setTimeout(() => {
+          messageContainer.classList.remove('message-transition');
+        }, 500);
+      }
+    });
   </script>
+  <style>
+    .list-group-item {
+      background-color: #111;
+      color: #00ffea; /* neon blue-green */
+      border-color: #333;
+    }
+    
+    .list-group-item-action:hover {
+      background-color: #222;
+      color: #ffffff;
+    }
+    #motivational-message {
+      font-style: italic;
+      color: #90EE90; /* neon blue-green */
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin: 15px auto;
+      padding: 0 15px;
+      font-size: 1.2rem;
+      transition: opacity 0.5s ease;
+    }
+    .message-transition {
+      opacity: 0.1;
+    }
+    /* Make the container have some padding and style */
+    #cover {
+      padding-top: 100px;
+      padding-bottom: 30px;
+    }
+    #nav-main {
+      background-color: rgba(45, 45, 45, 0.9) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      padding: 0.5rem 1rem;
+    }
+    
+    #nav-main .navbar-nav {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    
+    #nav-main .nav-link, #nav-main .navbar-brand {
+      color: #e0e0e0;
+      padding: 0.5rem 1rem;
+      margin: 0 0.25rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    
+    #nav-main .navbar-brand {
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    
+    #nav-main .nav-link:hover, #nav-main .navbar-brand:hover {
+      background-color: rgba(70, 130, 180, 0.3);
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
     <!-- Unified Navigation -->
-    <nav id="nav-main" class="navbar navbar-dark bg-dark fixed-top">
-      <a class="navbar-brand" href="index.html">Belbo</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ml-auto">
-          <li class="nav-item active"><a class="nav-link" href="index.html">Home</a></li>
-        </ul>
-      </div>
+    <nav id="nav-main" class="navbar navbar-dark fixed-top justify-content-center">
+      <ul class="navbar-nav flex-row">
+        <li class="nav-item mx-3"><a class="navbar-brand" href="index.html">Belbo</a></li>
+        <li class="nav-item mx-3 align-self-center"><a class="nav-link" href="index.html">Home</a></li>
+      </ul>
     </nav>
 
   <section id="cover">
   <div class="container mt-5">
     <h1>Welcome to Belbo</h1>
+    <div id="motivational-message">Track your calories, transform your life.</div>
     <p>Please Login with Google or Facebook</p>
     <p>Belbo is a place that you can feel unique.</p>
    
