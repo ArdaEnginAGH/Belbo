@@ -5,14 +5,22 @@ body {
   font-family: Arial, sans-serif;
 }
 #cover {
-  background: #222 url('https://static.vecteezy.com/system/resources/previews/002/272/583/non_2x/ingredients-for-healthy-foods-selection-on-dark-stone-background-in-heart-shape-free-photo.jpg') bottom center no-repeat;
+  background: rgba(50, 50, 50, 0.7) url('images/food-background.png') center center no-repeat;
   background-size: cover;
+  background-blend-mode: lighten;
   text-align: center;
   color: white;
   height: 100%;
   display: flex;
   align-items: center;
 }
+
+/* Add text shadow for better readability against dark background */
+#cover h1, #cover p {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  font-weight: bold;
+}
+
 #cover-caption {
   width: 100%;
   padding: 20px;

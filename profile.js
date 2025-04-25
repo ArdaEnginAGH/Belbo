@@ -34,7 +34,8 @@ document.addEventListener("DOMContentLoaded", () => {
         inputs[1].value = data.lastName || "";
         inputs[2].value = data.phone || "";
         inputs[3].value = data.age || "";
-        inputs[4].value = data.email || "";
+        // Always use the current authenticated user's email
+        inputs[4].value = user.email || "";
         inputs[5].value = data.weight || "";
         inputs[6].value = data.height || "";
         inputs[7].value = data.caloriGoal || "";

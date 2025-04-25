@@ -9,10 +9,207 @@
   <!-- FullCalendar CSS -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet" />
   <style>
-    .fc-daygrid-day:hover { box-shadow: 0 0 8px rgba(0,123,255,0.7); cursor: pointer; }
-    /* always center navbar items */
+    body {
+      background-color: #2a2a2a;
+      color: #e0e0e0;
+      background-image: url('images/calender-background.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+    
+    /* Compact and cohesive calendar styles */
+    .fc {
+      background-color: rgba(40, 40, 40, 0.85);
+      color: #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      margin: 0 auto;
+      max-width: 1100px; /* Increased calendar size */
+      font-size: 1.05rem; /* Slightly larger font */
+    }
+    
+    .fc-theme-standard td, .fc-theme-standard th, 
+    .fc-theme-standard .fc-scrollgrid {
+      border-color: #444;
+    }
+    
+    .fc-day-today {
+      background-color: rgba(70, 130, 180, 0.5) !important; /* More recognizable today highlight */
+      box-shadow: inset 0 0 8px rgba(100, 180, 255, 0.7); /* Inner glow for today */
+    }
+    
+    /* Brighter day number for today */
+    .fc-day-today .fc-daygrid-day-number {
+      color: white;
+      font-weight: bold;
+      background-color: rgba(70, 130, 180, 0.7);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .fc-col-header-cell {
+      background-color: #333;
+      color: #f0f0f0;
+      font-weight: bold;
+    }
+    
+    .fc-daygrid-day-number {
+      color: #e0e0e0;
+      font-weight: 500;
+      padding: 4px 6px;
+    }
+    
+    .fc-daygrid-day.fc-day-past {
+      background-color: rgba(45, 45, 45, 0.75);
+    }
+    
+    .fc-daygrid-day.fc-day-future {
+      background-color: rgba(50, 50, 50, 0.75);
+    }
+    
+    .fc-button-primary {
+      background-color: #444 !important;
+      border-color: #555 !important;
+    }
+    
+    .fc-button-primary:hover, .fc-button-primary:focus {
+      background-color: #555 !important;
+      border-color: #666 !important;
+    }
+    
+    .fc-event {
+      background-color: #4a6285;
+      border-color: #5c7da0;
+      padding: 2px;
+      margin: 1px 0;
+    }
+    
+    .fc-daygrid-day:hover { 
+      box-shadow: 0 0 10px rgba(150, 200, 255, 0.6); 
+      cursor: pointer; 
+      background-color: rgba(60, 60, 60, 0.9) !important;
+    }
+    
+    /* More compact calendar */
+    .fc .fc-daygrid-day-top {
+      padding: 2px 4px 0;
+    }
+    
+    .fc .fc-daygrid-day-events {
+      padding: 0 2px;
+    }
+    
+    .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
+      position: relative;
+    }
+    
+    /* Modals in dark mode */
+    .modal-content {
+      background-color: #333;
+      color: #e0e0e0;
+    }
+    
+    .modal-header {
+      border-bottom-color: #444;
+      padding: 0.75rem 1rem;
+    }
+    
+    .modal-footer {
+      border-top-color: #444;
+      padding: 0.5rem 0.75rem;
+    }
+    
+    .form-control, .form-control-file {
+      background-color: #444;
+      color: #e0e0e0;
+      border-color: #555;
+    }
+    
+    .form-control:focus {
+      background-color: #4d4d4d;
+      color: #f0f0f0;
+      box-shadow: 0 0 0 0.2rem rgba(100, 150, 200, 0.25);
+    }
+    
+    .close {
+      color: #e0e0e0;
+    }
+    
+    .list-group-item {
+      background-color: #444;
+      color: #e0e0e0;
+      border-color: #555;
+    }
+    
+    .list-group-item-action:hover {
+      background-color: #555;
+    }
+    
+    .btn-outline-primary {
+      color: #9cb4d8;
+      border-color: #9cb4d8;
+    }
+    
+    .btn-outline-primary:hover {
+      background-color: #4a6285;
+      border-color: #4a6285;
+    }
+    
+    .btn-outline-danger {
+      color: #e69999;
+      border-color: #e69999;
+    }
+    
+    .btn-outline-danger:hover {
+      background-color: #aa3333;
+      border-color: #aa3333;
+    }
+    
+    /* Updated navbar styling */
+    #nav-main {
+      background-color: rgba(45, 45, 45, 0.9) !important; /* More consistent with calendar */
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      padding: 0.5rem 1rem;
+    }
+    
     #nav-main .navbar-nav {
-      width: 100%; display: flex; justify-content: center;
+      width: 100%; 
+      display: flex; 
+      justify-content: center;
+    }
+    
+    #nav-main .nav-link, #nav-main .navbar-brand {
+      color: #e0e0e0;
+      padding: 0.5rem 1rem;
+      margin: 0 0.25rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    
+    #nav-main .navbar-brand {
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    
+    #nav-main .nav-link:hover, #nav-main .navbar-brand:hover {
+      background-color: rgba(70, 130, 180, 0.3);
+      color: #fff;
+    }
+    
+    /* Container with glass effect */
+    .calendar-container {
+      background-color: rgba(25, 25, 25, 0.6);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border-radius: 10px;
+      padding: 25px; /* Increased padding */
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      margin-bottom: 30px;
     }
   </style>
   <!-- Shared.js (modular Firebase setup) -->
@@ -20,7 +217,7 @@
 </head>
 <body>
   <!-- Navbar -->
-  <nav id="nav-main" class="navbar navbar-dark bg-dark fixed-top">
+  <nav id="nav-main" class="navbar navbar-dark fixed-top">
     <ul class="navbar-nav flex-row">
       <li class="nav-item mx-3"><a class="navbar-brand" href="index.html">Belbo</a></li>
       <li class="nav-item mx-3"><a class="nav-link" href="index.html">Home</a></li>
@@ -31,7 +228,9 @@
 
   <!-- Calendar Container -->
   <div class="container" style="padding-top:80px">
-    <div id="calendar"></div>
+    <div class="calendar-container">
+      <div id="calendar"></div>
+    </div>
   </div>
 
   <!-- Entry Modal -->
